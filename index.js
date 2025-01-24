@@ -1,10 +1,33 @@
 import express from "express";
-
+import {rateLimit} from 'express-rate-limit'
+import fs from 'fs';
 const app = express();
 let PORT = 5000;
-//middleware  to parse incoming json payload
+
+// const limiter = rateLimit({
+//     windowMs: 1000 * 60 * 5, 
+//     max: 5, 
+//     message: "Sorry, you have exhausted your plan.", // Custom error message
+// });
+
+
+// app.use(limiter);
 
 app.use(express.json());
+
+// global middleware
+app.use((req,res,next) => {
+  let logdata = `${new Date()} | ${req.method} | ${req.url} | ${req.ip} \n`;
+  console.log(logdata);
+  fs.appendFile("log.txt", logdata, (err) => {
+    if(err) throw err;
+  })
+  next();
+})
+//middleware
+app.use("/assets",express.static('public'))
+
+
 app.get("/", (req, res) => {
   res.send("Welcome to GlowDerma - Your Skincare Journey Begins Here.");
 });
@@ -115,6 +138,16 @@ app.post("/cart", (req, res) => {
 app.get("*", (req, res) => {
   res.send(`Your port is not available`);
 });
+//middleware 400 no route
+app.use((req,res,next)=>{
+  return res.status(400).json(`We don't have this page yet!`)
+})
+//middleware 500
+  app.use((error, req, res)=>{
+    res.status(500).json({
+        "error": error.message
+      })
+    })
 app.listen(PORT, () => {
     console.log(`server is running on port http://localhost:${PORT}`);
   });
